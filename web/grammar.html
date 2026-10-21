@@ -179,6 +179,23 @@
         margin-top: 5px;
         font-size: 12px;
       }
+      .record-delete {
+        margin: 6px;
+        padding: 6px 8px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .record-confirm {
+        grid-column: 1/-1;
+        padding: 0 10px 10px;
+      }
+      .record-confirm p {
+        font-size: 12px;
+      }
+      .record-confirm button {
+        padding: 6px 10px;
+        margin-right: 6px;
+      }
       .grammar-line {
         margin: 8px 0;
         line-height: 1.55;
@@ -190,6 +207,10 @@
       }
       .record-select[aria-current='true'] {
         font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
       }
     </style>
   </head>
@@ -222,6 +243,22 @@
       const search = document.getElementById('search')
       const mode = document.getElementById('mode')
       let selected = null
+      let deleting = null
+      const deleteStatus = element('p', '', 'muted')
+      deleteStatus.setAttribute('role', 'status')
+      document.querySelector('header').append(deleteStatus)
+      window.grammarDeleteResult = (id, success) => {
+        if (deleting !== id) return
+        deleting = null
+        if (success) {
+          const index = records.findIndex((record) => record.id === id)
+          if (index !== -1) records.splice(index, 1)
+          deleteStatus.textContent = '记录已删除。'
+        } else {
+          deleteStatus.textContent = '删除失败，记录已保留。请重试。'
+        }
+        render()
+      }
       function element(tag, text, className) {
         const node = document.createElement(tag)
         node.textContent = text
@@ -307,7 +344,37 @@
             }
             show(record)
           }
-          cell.append(button)
+          const remove = element(
+            'button',
+            deleting === record.id ? '删除中…' : '删除',
+            'record-delete wrong'
+          )
+          remove.type = 'button'
+          remove.title = '删除这条完整解析记录'
+          remove.setAttribute('aria-label', '删除记录：' + title(record))
+          remove.disabled = deleting !== null
+          remove.onclick = () => {
+            for (const panel of list.querySelectorAll('.record-confirm')) panel.remove()
+            const actions = element('div', '', 'record-confirm')
+            actions.append(element('p', '永久删除整条解析及其中所有语法项？无法撤销。'))
+            const confirm = element('button', '确认删除', 'wrong')
+            const cancel = element('button', '取消')
+            confirm.type = cancel.type = 'button'
+            cancel.onclick = () => {
+              actions.remove()
+              remove.focus()
+            }
+            confirm.onclick = () => {
+              deleting = record.id
+              deleteStatus.textContent = '正在保存删除操作…'
+              render()
+              window.glimpse.send({ type: 'deleteGrammar', id: record.id })
+            }
+            actions.append(confirm, cancel)
+            cell.append(actions)
+            cancel.focus()
+          }
+          cell.append(button, remove)
           list.append(cell)
         }
         const record = filtered.find((record) => record.id === selected)

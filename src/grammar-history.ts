@@ -75,8 +75,16 @@ export function loadGrammarRecords(file = HISTORY_PATH): GrammarRecord[] {
   )
 }
 
+export function deleteGrammarRecord(id: number, file = HISTORY_PATH): void {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new Error('无效的语法记录 ID')
+  withDatabase(file, (db) => {
+    db.prepare('DELETE FROM grammar_records WHERE id = ?').run(id)
+  })
+}
+
 export function registerGrammarHistory(pi: ExtensionAPI): void {
   let window: GlimpseWindow | undefined
+  let displayedIds = new Set<number>()
   pi.registerCommand('grammar', {
     description: '浏览自动保存的语法记录',
     handler: async (_args, ctx) => {
@@ -86,6 +94,7 @@ export function registerGrammarHistory(pi: ExtensionAPI): void {
       }
       try {
         const records = loadGrammarRecords()
+        displayedIds = new Set(records.map((record) => record.id))
         // JSON is embedded only as data; escape '<' to prevent script-tag injection.
         const data = JSON.stringify(records).replace(/</g, '\\u003c')
         const html = readFileSync(new URL('../web/grammar.html', import.meta.url), 'utf8').replace(
@@ -105,6 +114,26 @@ export function registerGrammarHistory(pi: ExtensionAPI): void {
           if (previous === undefined) delete process.env.OS_ACTIVITY_MODE
           else process.env.OS_ACTIVITY_MODE = previous
         }
+        const activeWindow = window
+        activeWindow.on('message', (message: unknown) => {
+          if (typeof message !== 'object' || message === null) return
+          const { type, id } = message as { type?: unknown; id?: unknown }
+          if (
+            type !== 'deleteGrammar' ||
+            typeof id !== 'number' ||
+            !Number.isSafeInteger(id) ||
+            !displayedIds.has(id)
+          )
+            return
+          try {
+            deleteGrammarRecord(id)
+            displayedIds.delete(id)
+            activeWindow.send(`window.grammarDeleteResult(${id}, true)`)
+          } catch (error) {
+            activeWindow.send(`window.grammarDeleteResult(${id}, false)`)
+            ctx.ui.notify(`语法记录删除失败：${String(error)}`, 'error')
+          }
+        })
         window.on('error', (error) => ctx.ui.notify(`语法笔记窗口失败：${error.message}`, 'error'))
         window.on('closed', () => {
           window = undefined
