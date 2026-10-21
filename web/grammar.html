@@ -306,6 +306,19 @@
           }
         } else {
           field(detail, '英文／学习语言表达', result.tutor.sentence, 'final-sentence')
+          if (result.tutor.words.length > 0) {
+            detail.append(element('h3', '词汇 · Words'))
+            for (const word of result.tutor.words) {
+              const line = element('p', '', 'grammar-line word-line')
+              line.append(
+                element('strong', word.word),
+                document.createTextNode('　'),
+                element('span', word.note, 'explanation')
+              )
+              detail.append(line)
+            }
+            if (result.tutor.grammar.length > 0) detail.append(element('h3', '语法'))
+          }
           for (const grammar of result.tutor.grammar) {
             const line = element('p', '', 'grammar-line')
             line.append(
