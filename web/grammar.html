@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'"
+    />
+    <title>语法笔记</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font:
+          15px -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: light-dark(#f6f7f9, #17191d);
+        color: light-dark(#252932, #e8ebf0);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      header {
+        padding: 24px 28px;
+        border-bottom: 1px solid #8884;
+      }
+      h1 {
+        font-size: 25px;
+        margin: 0 0 8px;
+      }
+      p {
+        line-height: 1.65;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .muted {
+        color: light-dark(#626b79, #a9b1bf);
+        font-size: 13px;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        color: inherit;
+        background: light-dark(white, #242830);
+        border: 1px solid #8885;
+        border-radius: 8px;
+        padding: 10px;
+      }
+      input {
+        flex: 1;
+        min-width: 0;
+      }
+      .filters {
+        display: flex;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        min-height: 70vh;
+      }
+      nav {
+        padding: 16px;
+        border-right: 1px solid #8884;
+      }
+      article {
+        padding: 24px 30px;
+      }
+      .record {
+        display: block;
+        text-align: left;
+        width: 100%;
+        margin-bottom: 10px;
+        cursor: pointer;
+      }
+      .record[aria-current='true'] {
+        border-color: #5588db;
+        background: light-dark(#edf3ff, #22314a);
+      }
+      .record strong,
+      .record span {
+        display: block;
+        overflow-wrap: anywhere;
+      }
+      .record span {
+        margin-top: 8px;
+      }
+      .section {
+        border-bottom: 1px solid #8883;
+        padding: 4px 0 18px;
+        margin-bottom: 18px;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      h3 {
+        font-size: 14px;
+        color: light-dark(#626b79, #a9b1bf);
+        margin: 18px 0 6px;
+      }
+      .wrong {
+        color: light-dark(#b03b40, #ff9da2);
+      }
+      .right {
+        color: light-dark(#236d4e, #8dd7b3);
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 3px solid #5588db;
+        outline-offset: 2px;
+      }
+      @media (max-width: 700px) {
+        main {
+          grid-template-columns: 1fr;
+        }
+        nav {
+          max-height: 36vh;
+          overflow: auto;
+          border-right: 0;
+          border-bottom: 1px solid #8884;
+        }
+      }
+      header {
+        padding: 16px 20px;
+      }
+      h1 {
+        font-size: 21px;
+      }
+      .filters {
+        margin-top: 12px;
+      }
+      p {
+        margin: 6px 0;
+        line-height: 1.5;
+      }
+      nav {
+        padding: 12px;
+      }
+      article {
+        padding: 16px 22px;
+        min-width: 0;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 0 0 6px;
+      }
+      h3 {
+        margin: 12px 0 4px;
+      }
+      details {
+        margin-top: 14px;
+      }
+      .record {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        border: 1px solid #8885;
+        border-radius: 8px;
+        background: light-dark(white, #242830);
+        cursor: default;
+        margin-bottom: 8px;
+      }
+      .record-select {
+        border: 0;
+        background: transparent;
+        text-align: left;
+        min-width: 0;
+        padding: 10px;
+        cursor: pointer;
+      }
+      .record .muted {
+        margin-top: 5px;
+        font-size: 12px;
+      }
+      .grammar-line {
+        margin: 8px 0;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .grammar-line .explanation {
+        color: light-dark(#626b79, #a9b1bf);
+      }
+      .record-select[aria-current='true'] {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>语法笔记</h1>
+      <div class="muted">自动保存 · 原始解析 · 不额外生成例句</div>
+      <div class="filters">
+        <input
+          id="search"
+          type="search"
+          aria-label="搜索语法、原句或例句"
+          placeholder="搜索语法、原句或例句…"
+        /><select id="mode" aria-label="记录类型">
+          <option value="all">全部记录</option>
+          <option value="check">写作纠错</option>
+          <option value="tutor">语法教学</option>
+        </select>
+      </div>
+      <p id="count" class="muted" aria-live="polite"></p>
+    </header>
+    <main>
+      <nav id="list" aria-label="语法记录"></nav>
+      <article id="detail" aria-label="记录详情"></article>
+    </main>
+    <script>
+      const records = /*GRAMMAR_DATA*/ []
+      const list = document.getElementById('list')
+      const detail = document.getElementById('detail')
+      const search = document.getElementById('search')
+      const mode = document.getElementById('mode')
+      let selected = null
+      function element(tag, text, className) {
+        const node = document.createElement(tag)
+        node.textContent = text
+        if (className) node.className = className
+        return node
+      }
+      function label(record) {
+        return record.result.mode === 'check' ? '写作纠错' : '语法教学'
+      }
+      function title(record) {
+        const result = record.result
+        return result.mode === 'check'
+          ? result.items[0]?.right || result.rephrase || '整句改写'
+          : result.tutor.grammar[0]?.structure || '语法教学'
+      }
+      function field(parent, name, value, className) {
+        parent.append(element('h3', name), element('p', value, className))
+      }
+      function show(record) {
+        detail.replaceChildren()
+        const result = record.result
+        if (result.mode === 'check') {
+          if (result.rephrase) field(detail, '整句自然表达', result.rephrase)
+          for (const item of result.items) {
+            const line = element('p', '', 'grammar-line')
+            line.append(
+              element('span', item.wrong, 'wrong'),
+              document.createTextNode(' → '),
+              element('span', item.right, 'right'),
+              document.createTextNode('　'),
+              element('span', item.reason, 'explanation')
+            )
+            detail.append(line)
+          }
+        } else {
+          field(detail, '英文／学习语言表达', result.tutor.sentence)
+          for (const grammar of result.tutor.grammar) {
+            const line = element('p', '', 'grammar-line')
+            line.append(
+              element('strong', grammar.structure),
+              document.createTextNode('　'),
+              element('span', grammar.note, 'explanation')
+            )
+            detail.append(line)
+          }
+        }
+        const original = document.createElement('details')
+        original.append(element('summary', '原始输入'), element('p', record.input))
+        detail.append(original)
+      }
+      function render() {
+        const query = search.value.trim().toLocaleLowerCase()
+        const filtered = records.filter(
+          (record) =>
+            (mode.value === 'all' || record.result.mode === mode.value) &&
+            JSON.stringify(record).toLocaleLowerCase().includes(query)
+        )
+        if (!filtered.some((record) => record.id === selected)) selected = filtered[0]?.id ?? null
+        list.replaceChildren()
+        document.getElementById('count').textContent =
+          `${filtered.length} 条记录 · 共 ${records.length} 条 · 再次运行 /grammar 刷新`
+        for (const record of filtered) {
+          const cell = element('div', '', 'record')
+          cell.setAttribute('aria-current', String(record.id === selected))
+          const button = element('button', '', 'record-select')
+          button.type = 'button'
+          button.setAttribute('aria-current', String(record.id === selected))
+          button.append(
+            element('strong', title(record)),
+            element(
+              'span',
+              label(record) + ' · ' + new Date(record.createdAt).toLocaleString(),
+              'muted'
+            )
+          )
+          button.onclick = () => {
+            selected = record.id
+            for (const child of list.children) {
+              child.setAttribute('aria-current', String(child === cell))
+              child
+                .querySelector('.record-select')
+                .setAttribute('aria-current', String(child === cell))
+            }
+            show(record)
+          }
+          cell.append(button)
+          list.append(cell)
+        }
+        const record = filtered.find((record) => record.id === selected)
+        if (record) show(record)
+        else
+          detail.replaceChildren(
+            element('h2', records.length ? '没有匹配的记录' : '还没有语法记录'),
+            element(
+              'p',
+              records.length
+                ? '换个关键词或筛选条件试试。'
+                : '插件生成新的纠错或语法教学后会自动保存。过去未保存的解析不会自动恢复。'
+            )
+          )
+      }
+      search.addEventListener('input', render)
+      mode.addEventListener('change', render)
+      render()
+    </script>
+  </body>
+</html>

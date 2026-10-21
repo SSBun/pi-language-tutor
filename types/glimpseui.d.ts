@@ -15,6 +15,7 @@ declare module 'glimpseui' {
     on(event: 'closed', listener: () => void): this
     on(event: 'error', listener: (error: Error) => void): this
     send(js: string): void
+    setHTML(html: string): void
     show(options?: { title?: string }): void
     close(): void
     loadFile(path: string): void

@@ -1,7 +1,9 @@
-import { mkdirSync, chmodSync } from 'node:fs'
+import { mkdirSync, readFileSync, chmodSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
+import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
+import { open, type GlimpseWindow } from 'glimpseui'
 import type { Config, ReviewResult } from './core.ts'
 
 export const HISTORY_PATH = path.join(os.homedir(), '.pi', 'agent', 'grammar.sqlite')
@@ -71,4 +73,49 @@ export function loadGrammarRecords(file = HISTORY_PATH): GrammarRecord[] {
         result: JSON.parse(String(row.result)) as SavedResult
       }))
   )
+}
+
+export function registerGrammarHistory(pi: ExtensionAPI): void {
+  let window: GlimpseWindow | undefined
+  pi.registerCommand('grammar', {
+    description: '浏览自动保存的语法记录',
+    handler: async (_args, ctx) => {
+      if (!ctx.hasUI || ctx.mode !== 'tui') {
+        ctx.ui.notify('/grammar 需要交互式 TUI 模式。', 'warning')
+        return
+      }
+      try {
+        const records = loadGrammarRecords()
+        // JSON is embedded only as data; escape '<' to prevent script-tag injection.
+        const data = JSON.stringify(records).replace(/</g, '\\u003c')
+        const html = readFileSync(new URL('../web/grammar.html', import.meta.url), 'utf8').replace(
+          '/*GRAMMAR_DATA*/[]',
+          () => data
+        )
+        if (window) {
+          window.setHTML(html)
+          window.show({ title: '语法笔记' })
+          return
+        }
+        const previous = process.env.OS_ACTIVITY_MODE
+        try {
+          process.env.OS_ACTIVITY_MODE = 'disable'
+          window = open(html, { width: 960, height: 700, title: '语法笔记' })
+        } finally {
+          if (previous === undefined) delete process.env.OS_ACTIVITY_MODE
+          else process.env.OS_ACTIVITY_MODE = previous
+        }
+        window.on('error', (error) => ctx.ui.notify(`语法笔记窗口失败：${error.message}`, 'error'))
+        window.on('closed', () => {
+          window = undefined
+        })
+      } catch (error) {
+        ctx.ui.notify(`无法打开语法笔记：${String(error)}`, 'error')
+      }
+    }
+  })
+  pi.on('session_shutdown', async () => {
+    window?.close()
+    window = undefined
+  })
 }
