@@ -18,6 +18,7 @@ import { addCards, loadCards, saveCards } from './flashcards.ts'
 import type { ForkContext } from './llm.ts'
 import { resolveModel, runLlm } from './llm.ts'
 import { showTutorWidget } from './tutor.ts'
+import { saveGrammarRecord } from './grammar-history.ts'
 
 const WIDGET_KEY = 'language-learn'
 
@@ -87,6 +88,12 @@ export function registerReview(
       }
       if (result === undefined && fork && !signal.aborted) result = await attempt(undefined)
       if (signal.aborted || result === undefined) return
+
+      try {
+        saveGrammarRecord(text, cfg, result)
+      } catch (error) {
+        ctx.ui.notify(`语法记录保存失败：${String(error)}`, 'warning')
+      }
 
       if (result.mode === 'skip') {
         ctx.ui.setWidget(WIDGET_KEY, undefined)
