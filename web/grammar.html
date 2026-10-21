@@ -212,6 +212,17 @@
         opacity: 0.5;
         cursor: default;
       }
+      .final-sentence {
+        font-size: 18px;
+        font-weight: 600;
+        line-height: 1.6;
+        color: light-dark(#175a40, #b1ebce);
+        background: light-dark(#eaf5ee, #1d3028);
+        border-left: 3px solid light-dark(#388761, #73bd94);
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin: 6px 0 14px;
+      }
     </style>
   </head>
   <body>
@@ -281,7 +292,7 @@
         detail.replaceChildren()
         const result = record.result
         if (result.mode === 'check') {
-          if (result.rephrase) field(detail, '整句自然表达', result.rephrase)
+          if (result.rephrase) field(detail, '整句自然表达', result.rephrase, 'final-sentence')
           for (const item of result.items) {
             const line = element('p', '', 'grammar-line')
             line.append(
@@ -294,7 +305,7 @@
             detail.append(line)
           }
         } else {
-          field(detail, '英文／学习语言表达', result.tutor.sentence)
+          field(detail, '英文／学习语言表达', result.tutor.sentence, 'final-sentence')
           for (const grammar of result.tutor.grammar) {
             const line = element('p', '', 'grammar-line')
             line.append(
